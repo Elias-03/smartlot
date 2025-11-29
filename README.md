@@ -5,9 +5,9 @@
 
 ## 🎥 Demo Video
 
-Click to watch the full demonstration:
+Click to Download the full demonstration:
 
-[![Demo Video](smartlot.jpg)](Demo%20Final.mp4)
+[Demo Video](Demo%20Final.mp4)
 
 > (GitHub allows MP4 playback when clicking the link.)
 
