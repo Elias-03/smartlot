@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Parking</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --success-color: #34C759;
+      --danger-color: #FF3B30;
+      --background-color: #F2F2F7;
+      --card-background: #FFFFFF;
+      --text-primary: #1C1C1E;
+      --text-secondary: #8A8A8E;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --border-radius: 12px;
+    }
+    body {
+      font-family: var(--font-family);
+      background-color: var(--background-color);
+      margin: 0;
+      color: var(--text-primary);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .status-bar {
+      background-color: var(--card-background);
+      color: var(--text-primary);
+      padding: 15px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      border-bottom: 1px solid #E5E5EA;
+    }
+    #system-message {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .gate-status-display {
+      display: flex;
+      gap: 20px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    .gate-status-item span {
+      font-weight: 600;
+    }
+    .gate-status-item .open { color: var(--success-color); }
+    .gate-status-item .closed { color: var(--danger-color); }
+    .main-content {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column-reverse;
+      padding: 20px;
+      gap: 20px;
+      overflow: auto;
+    }
+    @media (min-width: 768px) {
+      .main-content {
+        flex-direction: row;
+      }
+    }
+    .slots-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 15px;
+      flex-grow: 1;
+    }
+    .slot {
+      background: var(--card-background);
+      border-radius: var(--border-radius);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 1rem;
+      font-weight: 600;
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+      min-height: 120px;
+    }
+    .slot-id {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .slot.available {
+      color: var(--success-color);
+      border-color: var(--success-color);
+    }
+    .slot.occupied {
+      color: var(--danger-color);
+      border-color: var(--danger-color);
+    }
+    #map-container {
+      position: relative;
+      width: 100%;
+      height: 250px;
+      border-radius: var(--border-radius);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+      background: #E5E5EA; /* Placeholder color */
+    }
+    @media (min-width: 768px) {
+      #map-container {
+        height: 100%;
+        flex-basis: 45%;
+        flex-shrink: 0;
+      }
+    }
+    .find-me-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      background-color: var(--card-background);
+      color: var(--text-primary);
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="status-bar">
+    <div id="system-message">Welcome!</div>
+    <div class="gate-status-display">
+      <div class="gate-status-item">Entry: <span id="entry-gate-status" class="closed">CLOSED</span></div>
+      <div class="gate-status-item">Exit: <span id="exit-gate-status" class="closed">CLOSED</span></div>
+    </div>
+  </div>
+  <div class="main-content">
+    <div class="slots-container">
+      <div id="Slot1" class="slot"><span class="slot-id">SLOT 1</span><div class="status"></div></div>
+      <div id="Slot2" class="slot"><span class="slot-id">SLOT 2</span><div class="status"></div></div>
+      <div id="Slot3" class="slot"><span class="slot-id">SLOT 3</span><div class="status"></div></div>
+      <div id="Slot4" class="slot"><span class="slot-id">SLOT 4</span><div class="status"></div></div>
+      <div id="Slot5" class="slot"><span class="slot-id">SLOT 5</span><div class="status"></div></div>
+    </div>
+    <div id="map-container">
+      <button class="find-me-btn" onclick="findUserLocation()">Find Me</button>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    function updateSystemMessages(liveState) {
+        if (!liveState) return;
+        const messageEl = document.getElementById('system-message');
+        
+        let availableSlots = 0;
+        if (liveState.Slots) {
+            for (let i = 1; i <= 5; i++) {
+                if (liveState.Slots[`Slot${i}`] === 'AVAILABLE') {
+                    availableSlots++;
+                }
+            }
+        }
+
+        if (liveState.Remarks && liveState.Remarks.toLowerCase().includes('entry')) {
+            messageEl.textContent = 'Proceed to Entry';
+            messageEl.style.color = 'var(--success-color)';
+        } else if (availableSlots === 0) {
+            messageEl.textContent = 'Parking Full';
+            messageEl.style.color = 'var(--danger-color)';
+        } else {
+            messageEl.textContent = `${availableSlots} Spots Available`;
+            messageEl.style.color = 'var(--text-primary)';
+        }
+    }
+
+    let map; // Make map globally accessible within the script
+    let userMarker;
+
+    function initMap() {
+        const centerLat = 30.8963;
+        const centerLng = 75.8443;
+        map = L.map('map-container').setView([centerLat, centerLng], 18);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        const parkingSpots = [
+            { lat: 30.89650, lng: 75.84410, name: 'Spot 1' },
+            { lat: 30.89645, lng: 75.84420, name: 'Spot 2' },
+            { lat: 30.89640, lng: 75.84430, name: 'Spot 3' },
+            { lat: 30.89635, lng: 75.84440, name: 'Spot 4' },
+            { lat: 30.89630, lng: 75.84450, name: 'Spot 5' }
+        ];
+
+        parkingSpots.forEach(spot => {
+            const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
+            const popupContent = `<b>${spot.name}</b><br><a href="${directionsUrl}" target="_blank">Get Directions</a>`;
+            L.marker([spot.lat, spot.lng]).addTo(map)
+                .bindPopup(popupContent);
+        });
+    }
+
+    function findUserLocation() {
+        if (!navigator.geolocation) {
+            alert("Geolocation is not supported by your browser.");
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(position => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            
+            map.setView([lat, lng], 18);
+
+            if (userMarker) {
+                userMarker.setLatLng([lat, lng]);
+            } else {
+                userMarker = L.marker([lat, lng], {
+                    icon: L.divIcon({
+                        className: 'user-location-dot',
+                        html: '',
+                        iconSize: [16, 16]
+                    })
+                }).addTo(map);
+            }
+            userMarker.bindPopup("<b>You are here</b>").openPopup();
+
+        }, () => {
+            alert("Unable to retrieve your location.");
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initMap();
+        // The refreshDashboard interval is already running from common.js
+        // We just need to add our page-specific update logic.
+        setInterval(async () => {
+            const state = await getLiveState();
+            if (state) {
+                updateSystemMessages(state);
+            }
+        }, 2000);
+    });
+  </script>
+</body>
+</html>

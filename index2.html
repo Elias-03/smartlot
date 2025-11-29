@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gate Manager</title>
+  <style>
+    :root {
+      --primary-accent: #007AFF;
+      --success-color: #34C759;
+      --danger-color: #FF3B30;
+      --background-color: #F2F2F7;
+      --card-background: #FFFFFF;
+      --text-primary: #1C1C1E;
+      --text-secondary: #8A8A8E;
+      --separator-color: #E5E5EA;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --border-radius: 12px;
+    }
+    body {
+      font-family: var(--font-family);
+      background-color: var(--background-color);
+      margin: 0;
+      color: var(--text-primary);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .login-view {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 350px;
+      padding: 30px;
+      background: var(--card-background);
+      border-radius: var(--border-radius);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    }
+    .login-view h2 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      text-align: center;
+      margin: 0 0 25px;
+    }
+    .login-view input {
+      font-size: 1rem;
+      padding: 12px 15px;
+      margin-bottom: 15px;
+      border: 1px solid var(--separator-color);
+      border-radius: 8px;
+      background: #F9F9F9;
+    }
+    .login-view button {
+      font-size: 1rem;
+      font-weight: 500;
+      padding: 12px;
+      border: none;
+      background-color: var(--primary-accent);
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    .login-view button:hover {
+      background-color: #0056b3;
+    }
+    .dashboard {
+      display: none;
+      width: 100%;
+      max-width: 1200px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 0;
+    }
+    #time {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    @media (min-width: 900px) {
+      .main-grid {
+        grid-template-columns: 2fr 1fr;
+      }
+    }
+    .card {
+      background: var(--card-background);
+      padding: 25px;
+      border-radius: var(--border-radius);
+      box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+    }
+    .card h3 {
+      margin: 0 0 20px;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    .slots-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 20px;
+    }
+    .slot {
+      background: var(--background-color);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.5rem;
+      font-weight: 600;
+      min-height: 100px;
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+    }
+    .slot-id {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .slot.available {
+      color: var(--success-color);
+      border-color: var(--success-color);
+    }
+    .slot.occupied {
+      color: var(--danger-color);
+      border-color: var(--danger-color);
+    }
+    .controls-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .control-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .control-group button {
+      padding: 12px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: var(--primary-accent);
+      color: white;
+      transition: transform 0.1s ease;
+    }
+    .control-group button:active, .control-group button.active {
+      transform: scale(0.97);
+    }
+    .control-group button.active {
+      background-color: var(--success-color);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .gate-status-display {
+      display: flex;
+      gap: 20px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    .gate-status-item span {
+      font-weight: 600;
+    }
+    .gate-status-item .open { color: var(--success-color); }
+    .gate-status-item .closed { color: var(--danger-color); }
+    .mode-control {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px;
+      background: var(--background-color);
+      border-radius: 10px;
+    }
+    .mode-control span {
+      font-weight: 500;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 51px;
+      height: 31px;
+    }
+    .switch input { display: none; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #E9E9EA;
+      transition: .4s;
+      border-radius: 31px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 27px;
+      width: 27px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    input:checked + .slider {
+      background-color: var(--success-color);
+    }
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+    #log-container {
+      height: 250px;
+      overflow-y: auto;
+      background: var(--background-color);
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    #log-container p { margin: 0 0 8px; }
+  </style>
+</head>
+<body>
+  <div id="login-container" class="login-view">
+    <h2>Manager Login</h2>
+    <input type="text" id="username" placeholder="Username" required>
+    <input type="password" id="password" placeholder="Password" required>
+    <button onclick="handleLogin()">Sign In</button>
+  </div>
+
+  <div id="dashboard-container" class="dashboard">
+    <div class="header">
+      <h1>Dashboard</h1>
+      <div class="gate-status-display">
+        <div class="gate-status-item">Entry: <span id="entry-gate-status" class="closed">...</span></div>
+        <div class="gate-status-item">Exit: <span id="exit-gate-status" class="closed">...</span></div>
+      </div>
+      <div id="time"></div>
+    </div>
+    <div class="main-grid">
+      <div class="card">
+        <h3>Parking Slots</h3>
+        <div class="slots-container">
+          <div id="Slot1" class="slot"><span class="slot-id">SLOT 1</span><div class="status"></div></div>
+          <div id="Slot2" class="slot"><span class="slot-id">SLOT 2</span><div class="status"></div></div>
+          <div id="Slot3" class="slot"><span class="slot-id">SLOT 3</span><div class="status"></div></div>
+          <div id="Slot4" class="slot"><span class="slot-id">SLOT 4</span><div class="status"></div></div>
+          <div id="Slot5" class="slot"><span class="slot-id">SLOT 5</span><div class="status"></div></div>
+        </div>
+      </div>
+      <div class="controls-container">
+        <div class="card">
+          <h3>Gate Controls</h3>
+          <div class="control-group">
+            <button onclick="sendCommand('ENTRY_OPEN')">Open Entry</button>
+            <button onclick="sendCommand('ENTRY_CLOSE')">Close Entry</button>
+            <button onclick="sendCommand('EXIT_OPEN')">Open Exit</button>
+            <button onclick="sendCommand('EXIT_CLOSE')">Close Exit</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>System Mode</h3>
+          <p>Current Mode: <strong id="mode-status">...</strong></p>
+          <div class="control-group">
+            <button id="auto-mode-btn" onclick="sendCommand('AUTO_MODE')">Set Auto</button>
+            <button id="manual-mode-btn" onclick="sendCommand('MANUAL_MODE')">Set Manual</button>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="grid-column: 1 / -1;">
+        <h3>Activity Log</h3>
+        <div id="log-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    function handleLogin() {
+      const user = document.getElementById('username').value;
+      const pass = document.getElementById('password').value;
+      if (user === 'admin' && pass === 'admin') {
+        document.getElementById('login-container').style.display = 'none';
+        document.getElementById('dashboard-container').style.display = 'block';
+      } else {
+        alert('Invalid credentials');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // The refreshDashboard interval is already running from common.js
+        // We just add page-specific updates here.
+        setInterval(async () => {
+            const state = await getLiveState();
+            if (!state) return;
+
+            if (state.Timestamps) {
+                document.getElementById('time').innerText = new Date(state.Timestamps.Epoch * 1000).toLocaleString();
+            }
+
+            // Update active button for mode
+            const autoBtn = document.getElementById('auto-mode-btn');
+            const manualBtn = document.getElementById('manual-mode-btn');
+            if (state.Mode && autoBtn && manualBtn) {
+                if (state.Mode.toUpperCase() === 'AUTO') {
+                    autoBtn.classList.add('active');
+                    manualBtn.classList.remove('active');
+                } else {
+                    manualBtn.classList.add('active');
+                    autoBtn.classList.remove('active');
+                }
+            }
+        }, 2000);
+    });
+  </script>
+</body>
+</html>
