@@ -1,6 +1,16 @@
 # Smart Parking IoT System – SmartLot360
 
+
 ![Smart Parking Hardware Setup](smartlot.jpg)
+
+## 🎥 Demo Video
+
+Click to watch the full demonstration:
+
+[![Demo Video](smartlot.jpg)](Demo%20Final.mp4)
+
+> (GitHub allows MP4 playback when clicking the link.)
+
 
 ## 📌 Overview
 SmartLot360 is a complete **IoT-based smart parking management system** that combines hardware automation with a real-time online dashboard.  
